@@ -2,6 +2,7 @@ import torch
 import math
 from typing import Sequence, TYPE_CHECKING
 
+
 if TYPE_CHECKING:
     # Since extending torch.Tensor class using __torch_function__ is not supported by 
     # static type checker like MyPy and Pyright, we use this dummy class to fool the 
@@ -35,7 +36,7 @@ else:
                 self._tensor = init_tensor
         
         def _scale_up_to(self, size: int):
-            grow_to = 2 ** math.ceil(math.log2(size + 1))
+            grow_to = int(2 ** math.ceil(math.log2(size + 1)))
             orig_shape = list(self._tensor.shape)
             orig_shape[self.grow_on] = grow_to
             new_storage = torch.empty(orig_shape)
@@ -67,6 +68,9 @@ else:
         
         def __getitem__(self, slice):
             return self.tensor.__getitem__(slice)
+        
+        def __setitem__(self, slice, val):
+            return self.tensor.__setitem__(slice, val)
         
         @classmethod
         def __torch_function__(cls, func, types, args=(), kwargs=None):
