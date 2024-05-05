@@ -1,4 +1,9 @@
-# AutoScalingTensor
+<p align="center">
+    <img width="200" alt="Screenshot 2024-05-05 at 2 17 14 AM" src="https://github.com/MarkChenYutian/AutoScalingTensor/assets/47029019/48cc04d4-eb20-4a40-8589-251cd75bb2c7">
+</p>
+
+<h1 align="center">AutoScalingTensor</h1>
+
 
 Automatic-resized PyTorch Tensor that supports all Pytorch API with almost zero abstraction cost. Amortized O(1) `torch.cat` along specific dimension.
 
