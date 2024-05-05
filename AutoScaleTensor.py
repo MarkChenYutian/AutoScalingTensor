@@ -2,7 +2,6 @@ import torch
 import math
 from typing import Sequence, TYPE_CHECKING
 
-
 if TYPE_CHECKING:
     # Since extending torch.Tensor class using __torch_function__ is not supported by 
     # static type checker like MyPy and Pyright, we use this dummy class to fool the 
@@ -20,6 +19,8 @@ if TYPE_CHECKING:
                      init_tensor: torch.Tensor | None = None) -> None: ...
         def __new__(cls, *args, **kwargs) -> "AutoScalingTensor": ...
         def push(self, x: torch.Tensor) -> None: ...
+        @property
+        def current_size(self) -> int: ...
 else:
     class AutoScalingTensor:
         def __init__(self, 
@@ -63,14 +64,8 @@ else:
                 self._scale_up_to(self.current_size + data_size)
             assert self.current_size < self._curr_max_size
             
-            self._tensor.narrow(dim=0, start=self.current_size, length=data_size).copy_(x)
+            self._tensor.narrow(dim=0, start=self.current_size, length=data_size).copy_(x, non_blocking=True)
             self.current_size += data_size
-        
-        def __getitem__(self, slice):
-            return self.tensor.__getitem__(slice)
-        
-        def __setitem__(self, slice, val):
-            return self.tensor.__setitem__(slice, val)
         
         @classmethod
         def __torch_function__(cls, func, types, args=(), kwargs=None):
@@ -89,3 +84,30 @@ else:
                 # If it's not a class attribute, delegate to the tensor
                 tensor = object.__getattribute__(self, 'tensor')
                 return getattr(tensor, name)
+
+        # Magic methods cannot be forwarded automatically, so has to do this
+        def __getitem__(self, slice): return self.tensor.__getitem__(slice)
+        def __setitem__(self, slice, val): return self.tensor.__setitem__(slice, val)
+        def __rsub__(self, other): return self.tensor.__rsub__(other)
+        def __rdiv__(self, other): return self.tensor.__rdiv__(other)
+        __rtruediv__ = __rdiv__
+        def __itruediv__(self, *args, **kwargs): return self.tensor.__itruediv__(*args, **kwargs)
+        def __pow__(self, exponent): return self.tensor.__pow__(exponent)
+        def __ipow__(self, exponent): return self.tensor.__ipow__(exponent)
+        def __rmod__(self, other): return self.tensor.__rmod__(other)
+        def __format__(self, spec): return self.tensor.__format__(spec)
+        def __rpow__(self, other): return self.tensor.__rpow__(other)
+        def __add__(self, other): return self.tensor.__add__(other)
+        def __floordiv__(self, other): return self.tensor.__floordiv__(other)
+        def __rfloordiv__(self, other): return self.tensor.__rfloordiv__(other)
+        def __rlshift__(self, other): return self.tensor.__rlshift__(other)
+        def __rrshift__(self, other): return self.tensor.__rrshift__(other)
+        def __rmatmul__(self, other): return self.tensor.__rmatmul__(other)
+        def __pos__(self): return self.tensor.__pos__()
+        def __neg__(self): return self.tensor.__neg__()
+        def __abs__(self): return self.tensor.__abs__()
+        def __len__(self): return self.tensor.__len__()
+        def __iter__(self): return self.tensor.__iter__()
+        def __hash__(self): return self.tensor.__hash__()
+        def __dir__(self): return self.tensor.__dir__()
+        def __reversed__(self): return self.tensor.__reversed__()
