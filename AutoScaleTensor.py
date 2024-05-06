@@ -1,3 +1,10 @@
+"""
+Provides `AutoScalingTensor` class, an efficient tensor wrapper for data accumulation along certain dimension
+with little abstraction cost.
+
+Github Repo: https://github.com/MarkChenYutian/AutoScalingTensor
+"""
+
 import torch
 import math
 from typing import Sequence, TYPE_CHECKING
@@ -16,39 +23,43 @@ if TYPE_CHECKING:
         def __init__(self, 
                      shape: torch.Size | Sequence[int] | None, 
                      grow_on: int, 
-                     init_tensor: torch.Tensor | None = None) -> None: ...
+                     init_tensor: torch.Tensor | None = None,
+                     **kwargs) -> None: ...
         def __new__(cls, *args, **kwargs) -> "AutoScalingTensor": ...
         def push(self, x: torch.Tensor) -> None: ...
         @property
         def current_size(self) -> int: ...
+        @property
+        def _curr_max_size(self) -> int: ...
 else:
     class AutoScalingTensor:
         def __init__(self, 
                     shape: torch.Size | Sequence[int] | None, 
                     grow_on: int, 
-                    init_tensor: torch.Tensor | None = None
+                    init_tensor: torch.Tensor | None = None,
+                    **kwargs
                     ) -> None:
+            self.device = "cpu"
             self.grow_on = grow_on
             self.current_size = 0
             if shape is not None:
-                self._tensor = torch.empty(shape)
+                self._tensor = torch.empty(shape, device=self.device, **kwargs)
+                self._curr_max_size = shape[grow_on]
             else:
                 assert init_tensor is not None
                 self._tensor = init_tensor
+                self._curr_max_size = self._tensor.size(grow_on)
         
         def _scale_up_to(self, size: int):
             grow_to = int(2 ** math.ceil(math.log2(size + 1)))
             orig_shape = list(self._tensor.shape)
             orig_shape[self.grow_on] = grow_to
-            new_storage = torch.empty(orig_shape)
+            new_storage = torch.empty(orig_shape, device=self.device, dtype=self._tensor.dtype)
             new_storage.narrow(dim=self.grow_on, start=0, length=self.current_size).copy_(
                 self._tensor.narrow(dim=self.grow_on, start=0, length=self.current_size)
             )
             self._tensor = new_storage
-        
-        @property
-        def _curr_max_size(self) -> int:
-            return self._tensor.size(self.grow_on)
+            self._curr_max_size = grow_to
         
         @property
         def tensor(self) -> torch.Tensor:
@@ -76,7 +87,7 @@ else:
 
         # A further enhancement - we want AutoScale to behave exactly like the tensor it contains
         def __getattribute__(self, name: str):
-            if name in ['tensor', '__class__']:
+            if name in {'_tensor', 'tensor', 'push', '__class__'}:
                 return object.__getattribute__(self, name)
             try:
                 return object.__getattribute__(self, name)
