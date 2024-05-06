@@ -73,7 +73,7 @@ else:
             
             if self.current_size + data_size >= self._curr_max_size:
                 self._scale_up_to(self.current_size + data_size)
-            assert self.current_size < self._curr_max_size
+            assert (self.current_size + data_size) < self._curr_max_size
             
             self._tensor.narrow(dim=0, start=self.current_size, length=data_size).copy_(x, non_blocking=True)
             self.current_size += data_size
