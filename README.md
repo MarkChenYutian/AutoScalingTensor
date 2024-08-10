@@ -5,7 +5,42 @@
 <h1 align="center">AutoScalingTensor</h1>
 
 
-Automatic-resized PyTorch Tensor that supports all Pytorch API with almost zero abstraction cost. Amortized O(1) `torch.cat` along specific dimension.
+Automatic-resized PyTorch Tensor that supports all Pytorch API with almost zero abstraction cost. Amortized O(1) `torch.cat` along specific dimension. 
+
+## Interface
+
+### Create an AutoScalingTensor
+
+```python
+AutoScalingTensor(
+    shape: tuple[int, ...],
+    grow_on: int,
+    init_tensor: torch.Tensor | None = None,
+    init_val: int | float | None = None
+)
+```
+
+* `shape`   - the shape of tensor, all dimensions except the `grow_on`-dim will remain the same shape once created.
+* `grow_on` - the dimension to append data on.
+* `init_tensor` - (Optional) Use some existing tensor as the initial storage, `init_tensor`'s shape must match `shape` argument.
+* `init_val` - (Optional) The initial value for tensor. If not provided, tensor values will be uninitilized to maximize performance (using `torch.empty`). Otherwise, underlying tensor will always be initilized with `init_val` filled (using `torch.fill`).
+
+### Add data (efficiently) to AutoScalingTensor
+
+```python
+AutoScalingTensor.push(x: torch.Tensor) -> None
+```
+
+* `x` - the shape should be the same as `shape` provided to `__init__` except on `grow_on`-dim.
+
+### Retrieve data efficiently from AutoScalingTensor
+
+```python
+acc: AutoScalingTensor  # Some AutoScalingTensor
+
+acc_tensor_view: torch.Tensor = acc.tensor      # Get a view of all data with *.tensor
+acc_partial_view: torch.Tensor = acc[..., :100] # All indexing methods are supported, advanced or naive.
+```
 
 ## Efficient Tensor Accumulation
 
